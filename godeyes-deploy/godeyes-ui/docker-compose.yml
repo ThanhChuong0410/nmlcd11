@@ -1,0 +1,27 @@
+services:
+  godeyes-ui:
+    image: registry.godeyes.vn/godeyes-ui:0.1.0-de24396
+    container_name: godeyes-ui
+    ports:
+      - "80"
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - godeyes-network
+
+networks:
+  godeyes-network:
+    driver: bridge
+    external: true

@@ -1,0 +1,109 @@
+app:
+  name: godeyes-api-service
+  version: "1.0.0"
+  mode: development # development, release
+
+########### Database configurations ###########
+databases:
+  mongodb:
+    host: godeyes-mongodb
+    port: 27017
+    user: admin
+    password: G@dey3sMongoDB!
+    db_name: godeyes-development
+
+  clickhouse:
+    host: clickhouse-server
+    port: 9000
+    user: admin
+    password: G@dey3sPassw0rd
+    db_name: godeyesdevelopment
+
+########### Cache configurations ###########
+cache: # Redis configuration
+  host: "redis-node1:6379,redis-node2:6380,redis-node3:6381"
+  password: "G@dey3sPassw0rd"
+  db: 0
+
+########### Logger ###########
+logger:
+  level: info # debug, info, warn, error
+  format: pretty # pretty or json
+  output: stdout # Todo: file path or stdout
+
+########### Component configurations ###########
+repositories:
+  mongodb:
+    collection_devices: devices
+    collection_files: files
+    collection_sites: sites
+    collection_tenants: tenants
+    collection_users: users
+    collection_permissions: permissions
+    collection_edges: edges
+    collection_vehicles: vehicles
+    collection_alerts: alerts
+    collection_streams: streams
+
+  clickhouse:
+    table_events: enriched_events
+    table_vehicles: vehicles
+    table_alerts: alerts
+
+http_server:
+  base_url: "/api/v1"
+  port: 8686
+  listen_addr: "127.0.0.1"
+  enable_ssl: false
+  ssl_cert_file: ""
+  ssl_key_file: ""
+
+websocket:
+  host: 0.0.0.0
+  port: 8090
+  enable_ssl: false
+  ssl_cert_file: ""
+  ssl_key_file: ""
+  username: "admin"
+  password: "G@dey3sPassw0rd"
+  max_edge_connections: 1000
+  max_streams_per_edge: 10
+  read_buffer_size: 1024
+  write_buffer_size: 1024
+
+  write_wait: 10s
+  pong_wait: 60s
+  ping_period: 54s
+  max_message_size: 51200 # 50 MB
+  stream_duration: 10m # Stream session time
+  # return to fe client
+  socket_url: "wss://socket.godeyes.vn/stream"
+  # socket_url: "wss://only-hero-opposition-truck.trycloudflare.com/stream"
+
+auth_config:
+  jwt_secret_key: "your_jwt_secret_key"
+  token_expire: 1200 # in seconds (2 minute)
+  refresh_token_expire: 43200 # in seconds (12 hours)
+  long_token_expire: 604800 # in seconds (7 days)
+  refresh_token_name: godeyes_refresh_token
+  access_token_name: godeyes_access_token
+  is_flag_secure: false
+  allow_cors_origins:
+    # - "http://localhost:3001"
+    # - "https://localhost:3001"
+    - "http://portal.godeyes.vn"
+    - "https://portal.godeyes.vn"
+    - "http://www.godeyes.vn"
+    - "https://www.godeyes.vn"
+
+  whitelist_auth_paths:
+    - /api/v1/auth/login
+    - /api/v1/auth/refresh
+    - /edge
+    - /api/v1/edges/upload-file
+
+application:
+  max_export_rows: 10000
+  camera_timeout_mark_offline: 5m
+  file_storage_path: "./file_storage"
+  max_file_upload_size: 10485760 # 10 MB

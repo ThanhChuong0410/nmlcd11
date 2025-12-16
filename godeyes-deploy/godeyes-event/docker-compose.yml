@@ -1,0 +1,22 @@
+name: godeyes-core
+networks:
+  godeyes-network:
+    driver: bridge
+    enable_ipv6: false
+    external: true
+
+services:
+  event-service:
+    image: registry.godeyes.vn/godeyes-event:0.1.0-0f8f1e4
+    container_name: godeyes-event-service
+    restart: unless-stopped
+    networks:
+      - godeyes-network
+    volumes:
+      - ./configs:/app/configs:ro
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

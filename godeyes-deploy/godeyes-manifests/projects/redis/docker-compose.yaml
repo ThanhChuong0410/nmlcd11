@@ -1,0 +1,183 @@
+name: godeyes-cache
+services:
+  # Redis Cluster Node 1
+  redis-node1:
+    image: redis:8.4.0-alpine
+    container_name: redis-node1
+    command: >
+      redis-server
+      --port ${REDIS_NODE1_PORT}
+      --cluster-enabled yes
+      --cluster-config-file /data/nodes.conf
+      --cluster-node-timeout 5000
+      --cluster-announce-hostname redis-node1
+      --cluster-announce-port ${REDIS_NODE1_PORT}
+      --cluster-announce-bus-port 1${REDIS_NODE1_PORT}
+      --cluster-preferred-endpoint-type hostname
+      --requirepass ${REDIS_PASS}
+      --masterauth ${REDIS_PASS}
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    ports:
+      - "127.0.0.1:${REDIS_NODE1_PORT}:${REDIS_NODE1_PORT}"
+      - "127.0.0.1:1${REDIS_NODE1_PORT}:1${REDIS_NODE1_PORT}"
+    volumes:
+      - redis-node1-data:/data
+    networks:
+      - godeyes-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "${REDIS_NODE1_PORT}", "-a", "${REDIS_PASS}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      - REDIS_PORT=${REDIS_NODE1_PORT}
+      - REDIS_PASS=${REDIS_PASS}
+    restart: unless-stopped
+
+  # Redis Cluster Node 2
+  redis-node2:
+    image: redis:8.4.0-alpine
+    container_name: redis-node2
+    command: >
+      redis-server
+      --port ${REDIS_NODE2_PORT}
+      --cluster-enabled yes
+      --cluster-config-file /data/nodes.conf
+      --cluster-node-timeout 5000
+      --cluster-announce-hostname redis-node2
+      --cluster-announce-port ${REDIS_NODE2_PORT}
+      --cluster-announce-bus-port 1${REDIS_NODE2_PORT}
+      --cluster-preferred-endpoint-type hostname
+      --requirepass ${REDIS_PASS}
+      --masterauth ${REDIS_PASS}
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    ports:
+      - "127.0.0.1:${REDIS_NODE2_PORT}:${REDIS_NODE2_PORT}"
+      - "127.0.0.1:1${REDIS_NODE2_PORT}:1${REDIS_NODE2_PORT}"
+    volumes:
+      - redis-node2-data:/data
+    networks:
+      - godeyes-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "${REDIS_NODE2_PORT}", "-a", "${REDIS_PASS}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      - REDIS_PORT=${REDIS_NODE2_PORT}
+      - REDIS_PASS=${REDIS_PASS}
+    restart: unless-stopped
+
+  # Redis Cluster Node 3
+  redis-node3:
+    image: redis:8.4.0-alpine
+    container_name: redis-node3
+    command: >
+      redis-server
+      --port ${REDIS_NODE3_PORT}
+      --cluster-enabled yes
+      --cluster-config-file /data/nodes.conf
+      --cluster-node-timeout 5000
+      --cluster-announce-hostname redis-node3
+      --cluster-announce-port ${REDIS_NODE3_PORT}
+      --cluster-announce-bus-port 1${REDIS_NODE3_PORT}
+      --cluster-preferred-endpoint-type hostname
+      --requirepass ${REDIS_PASS}
+      --masterauth ${REDIS_PASS}
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    ports:
+      - "127.0.0.1:${REDIS_NODE3_PORT}:${REDIS_NODE3_PORT}"
+      - "127.0.0.1:1${REDIS_NODE3_PORT}:1${REDIS_NODE3_PORT}"
+    volumes:
+      - redis-node3-data:/data
+    networks:
+      - godeyes-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "${REDIS_NODE3_PORT}", "-a", "${REDIS_PASS}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      - REDIS_PORT=${REDIS_NODE3_PORT}
+      - REDIS_PASS=${REDIS_PASS}
+    restart: unless-stopped
+
+  # Cluster Initializer
+  redis-cluster-init:
+    image: redis:8.4.0-alpine
+    container_name: redis-cluster-init
+    command:
+      - sh
+      - -c
+      - |
+        echo 'Waiting for Redis nodes to be ready...'
+        sleep 15
+        echo 'Creating cluster with hostnames...'
+        redis-cli -a $$REDIS_PASS --cluster create \
+          redis-node1:$$REDIS_NODE1_PORT \
+          redis-node2:$$REDIS_NODE2_PORT \
+          redis-node3:$$REDIS_NODE3_PORT \
+          --cluster-replicas 0 --cluster-yes
+        echo 'Cluster created successfully'
+        sleep 5
+        redis-cli -h redis-node1 -p $$REDIS_NODE1_PORT -a $$REDIS_PASS cluster nodes
+    depends_on:
+      redis-node1:
+        condition: service_healthy
+      redis-node2:
+        condition: service_healthy
+      redis-node3:
+        condition: service_healthy
+    networks:
+      - godeyes-network
+    environment:
+      - REDIS_PASS=${REDIS_PASS}
+      - REDIS_NODE1_PORT=${REDIS_NODE1_PORT}
+      - REDIS_NODE2_PORT=${REDIS_NODE2_PORT}
+      - REDIS_NODE3_PORT=${REDIS_NODE3_PORT}
+    restart: on-failure
+
+  # Redis Commander UI
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-commander
+    ports:
+      - "127.0.0.1:16382:8081"
+    networks:
+      - godeyes-network
+    depends_on:
+      - redis-node1
+      - redis-node2
+      - redis-node3
+    environment:
+      - REDIS_HOSTS=cluster:redis-node1:${REDIS_NODE1_PORT}:0:${REDIS_PASS},cluster:redis-node2:${REDIS_NODE2_PORT}:0:${REDIS_PASS},cluster:redis-node3:${REDIS_NODE3_PORT}:0:${REDIS_PASS}
+      - PORT=8081
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8081"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redis-node1-data:
+    driver: local
+  redis-node2-data:
+    driver: local
+  redis-node3-data:
+    driver: local
+
+networks:
+  godeyes-network:
+    driver: bridge
+    name: godeyes-network
+    external: true

@@ -1,0 +1,23 @@
+services:
+  mongodb:
+    image: mongo:8.0
+    container_name: godeyes-mongodb
+    restart: unless-stopped
+    command: mongod --bind_ip 127.0.0.1,godeyes-mongodb
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASS}
+    networks:
+      - godeyes-network
+
+volumes:
+  mongo-data:
+
+networks:
+  godeyes-network:
+    driver: bridge
+    external: true

@@ -1,0 +1,135 @@
+
+app:
+  name: godeyes-event-service
+  version: "1.0.0"
+
+# Database configurations
+databases:
+  mongodb:
+    host: godeyes-mongodb
+    port: 27017
+    user: admin
+    password: G@dey3sMongoDB!
+    database: godeyes-development
+
+  clickhouse:
+    host: clickhouse-server
+    port: 9000
+    user: admin
+    password: G@dey3sPassw0rd
+    database: godeyesdevelopment
+
+# Queue topics
+queue:
+  brokers:
+    - redpanda-broker:9093
+  username: admin
+  password: G@dey3sRedPandas
+  enable_sasl: true
+  topics:
+    raw_events: "events.raw"
+    enriched_events: "events.enriched"
+
+# Common retry configuration
+retry:
+  attempts: 3
+  interval: 1s
+
+# Common worker configuration
+workers:
+  count: 1
+  channel_capacity: 100
+
+# Logger
+logger:
+  level: info # debug, info, warn, error
+  format: pretty # pretty or json
+  output: stdout # Todo: file path or stdout
+
+# Component configurations
+consumer:
+  brokers: ${queue.brokers}
+  topic_in: ${queue.topics.raw_events}
+  topic_out: ${queue.topics.enriched_events}
+  consumer_group: godeyes-event-consumer
+  auto_commit: true
+  batch:
+    size: 10
+    timeout: 3s
+    flush_interval: 2s
+    buffer_capacity: 2000
+  username: ${queue.username}
+  password: ${queue.password}
+  enable_sasl: ${queue.enable_sasl}
+
+coordinator:
+  worker_count: ${workers.count}
+  channel_capacity: ${workers.channel_capacity}
+
+processor:
+  worker_count: ${workers.count}
+  channel_capacity: ${workers.channel_capacity}
+  validation_timeout: 5s
+  enrichment_timeout: 10s
+
+metadata_loader:
+  database_config:
+    host: ${databases.mongodb.host}
+    port: ${databases.mongodb.port}
+    user: ${databases.mongodb.user}
+    password: ${databases.mongodb.password}
+    database: ${databases.mongodb.database}
+  refresh_interval: 5m
+  cache_size: 10000
+  enable_preloading: true
+
+persister:
+  database_config:
+    host: ${databases.clickhouse.host}
+    port: ${databases.clickhouse.port}
+    user: ${databases.clickhouse.user}
+    password: ${databases.clickhouse.password}
+    database: ${databases.clickhouse.database}
+    dial_timeout: 5s
+    max_execution_time: 60
+    debug: false
+    secure: false
+  anpr_table_name: enriched_events
+  vehicle_collection_name: vehicles
+  batch_size: 100
+  flush_interval: 5s
+  retry_attempts: ${retry.attempts}
+  retry_interval: ${retry.interval}
+
+  database_meta_config:
+    host: ${databases.mongodb.host}
+    port: ${databases.mongodb.port}
+    user: ${databases.mongodb.user}
+    password: ${databases.mongodb.password}
+    database: ${databases.mongodb.database}
+
+publisher:
+  topic: ${queue.topics.enriched_events}
+  retry_attempts: ${retry.attempts}
+  retry_interval: ${retry.interval}
+  username: ${queue.username}
+  password: ${queue.password}
+  enable_sasl: ${queue.enable_sasl}
+  producer:
+    brokers: ${queue.brokers}
+    compression: gzip # gzip, snappy, lz4, zstd
+    batch_size: 1000
+    max_message_bytes: 2000000 # 2000000 bytes = 2MB
+    required_acks: 1 # -1=all, 0=none, 1=leader
+    flush_timeout: 2s
+  batch:
+    size: 50
+    timeout: 2s
+    flush_interval: 2s
+    buffer_capacity: 1000
+
+metrics_collector:
+  channel_capacity: 1000
+  reporting_interval: 30s
+  retention_period: 24h
+  enable_prometheus_export: true

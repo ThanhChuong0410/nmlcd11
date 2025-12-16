@@ -1,0 +1,150 @@
+name: godeyes-queue
+networks:
+  godeyes-network:
+    driver: bridge
+    enable_ipv6: false
+    external: true
+
+volumes:
+  redpanda-broker: null
+services:
+  redpanda-broker:
+    command:
+      - redpanda
+      - start
+      - --kafka-addr plaintext://0.0.0.0:9092,external://0.0.0.0:19092,sasl_plaintext://0.0.0.0:9093
+      - --advertise-kafka-addr plaintext://redpanda-broker:9092,external://redpanda-broker:19092,sasl_plaintext://redpanda-broker:9093
+      - --pandaproxy-addr plaintext://0.0.0.0:8082,external://0.0.0.0:18082
+      - --advertise-pandaproxy-addr plaintext://redpanda-broker:8082,external://localhost:18082
+      - --schema-registry-addr plaintext://0.0.0.0:8081,external://0.0.0.0:18081
+      - --rpc-addr redpanda-broker:33145
+      - --advertise-rpc-addr redpanda-broker:33145
+      - --mode dev-container
+      - --smp 1
+      - --default-log-level=info
+      - --set redpanda.admin_api_require_auth=false
+      - --set redpanda.enable_sasl=true
+      - --set redpanda.superusers=["admin"]
+    image: docker.redpanda.com/redpandadata/redpanda:v25.2.10
+    container_name: redpanda-broker
+    restart: unless-stopped
+    volumes:
+      - redpanda-broker:/var/lib/redpanda/data
+    networks:
+      - godeyes-network
+    ports:
+      - 127.0.0.1:18081:18081
+      - 127.0.0.1:18082:18082
+      - 127.0.0.1:19092:19092
+      - 127.0.0.1:19644:9644
+      - 127.0.0.1:9093:9093
+    healthcheck:
+      test: ["CMD", "rpk", "cluster", "health", "--api-urls", "http://localhost:9644"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redpanda-console:
+    image: docker.redpanda.com/redpandadata/console:v3.2.2
+    restart: unless-stopped
+    networks:
+      - godeyes-network
+    entrypoint: /bin/sh
+    command: -c 'echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yml; /app/console'
+    environment:
+      CONFIG_FILEPATH: /tmp/config.yml
+      CONSOLE_CONFIG_FILE: |
+        kafka:
+          brokers: ["redpanda-broker:9093"]
+          sasl:
+            enabled: true
+            mechanism: SCRAM-SHA-256
+            username: ${REDPANDA_ADMIN_USERNAME}
+            password: ${REDPANDA_ADMIN_PASSWORD}
+        schemaRegistry:
+          enabled: true
+          urls: ["http://redpanda-broker:8081"]
+        redpanda:
+          adminApi:
+            enabled: true
+            urls: ["http://redpanda-broker:9644"]
+        server:
+          listenPort: 8081
+    ports:
+      - 127.0.0.1:8081:8081
+    depends_on:
+      - redpanda-broker
+
+
+  redpanda-rpk-cli:
+    image: redpandadata/redpanda:latest
+    restart: unless-stopped
+    depends_on:
+      - redpanda-broker
+    entrypoint: ["/bin/sh", "-c"]
+    networks:
+      - godeyes-network
+    command:
+      - |
+        echo "=== Redpanda Setup Script ==="
+        echo "Waiting for Redpanda to be fully ready..."
+        sleep 5
+
+        # Tạo admin user
+        echo "Creating admin user..."
+        rpk acl user create admin -p ${REDPANDA_ADMIN_PASSWORD} --api-urls http://redpanda-broker:9644
+        if [ $? -eq 0 ]; then
+          echo "✓ Admin user 'admin' created successfully"
+        else
+          echo "✗ Failed to create admin user"
+          exit 1
+        fi
+
+        # Tạo topics using internal plaintext port with SASL
+        echo "Creating topics..."
+
+        rpk topic create events.raw \
+          --brokers redpanda-broker:9092 \
+          --user admin \
+          --password ${REDPANDA_ADMIN_PASSWORD} \
+          --sasl-mechanism SCRAM-SHA-256
+
+        rpk topic create events.enriched \
+          --brokers redpanda-broker:9092 \
+          --user admin \
+          --password ${REDPANDA_ADMIN_PASSWORD} \
+          --sasl-mechanism SCRAM-SHA-256
+
+        if [ $? -eq 0 ]; then
+          echo "✓ Topics created successfully"
+        else
+          echo "✗ Failed to create topics"
+          sleep infinity
+        fi
+
+        # List topics để verify
+        echo "Verifying topics..."
+        rpk topic list \
+          --brokers redpanda-broker:9092 \
+          --user admin \
+          --password ${REDPANDA_ADMIN_PASSWORD} \
+          --sasl-mechanism SCRAM-SHA-256
+
+        echo ""
+        echo "=== Setup Complete ==="
+        echo "✓ Kafka SASL authentication: ENABLED"
+        echo "✓ Web Console authentication: ENABLED"
+        echo ""
+        echo "Kafka Connection (SASL):"
+        echo "  - Internal: redpanda-broker:9093"
+        echo "  - External: localhost:19093"
+        echo "  - Username: admin"
+        echo "  - Password: ${REDPANDA_ADMIN_PASSWORD}"
+        echo "  - Mechanism: SCRAM-SHA-256"
+        echo ""
+        echo "Web Console:"
+        echo "  - URL: http://localhost:8081"
+        echo ""
+        echo "Topics: events.raw, events.enriched"
+        
+        sleep infinity

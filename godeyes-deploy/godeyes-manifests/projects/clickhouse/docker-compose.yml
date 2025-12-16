@@ -1,0 +1,27 @@
+services:
+  clickhouse-server:
+    image: clickhouse/clickhouse-server
+    restart: unless-stopped
+    container_name: clickhouse-server
+    ports:
+      - "127.0.0.1:8123:8123" # HTTP interface
+      - "127.0.0.1:9000:9000" # Native client interface
+    environment:
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASS}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1 # Enable access management for user creation
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse_log:/var/log/clickhouse-server
+    networks:
+      - godeyes-network
+
+volumes:
+  clickhouse_data:
+  clickhouse_log:
+
+networks:
+  godeyes-network:
+    driver: bridge
+    external: true

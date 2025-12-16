@@ -1,0 +1,24 @@
+services:
+  godeyes-websocket-service:
+    image: registry.godeyes.vn/godeyes-websocket-service:0.1.0-5992abd
+    container_name: godeyes-websocket-service
+    ports:
+      - "127.0.0.1:8090:8090"  # Chỉ bind localhost, không public
+    volumes:
+      - ./configs:/app/configs
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - godeyes-network
+    # network_mode: host
+
+networks:
+  godeyes-network:
+    driver: bridge
+    external: true
