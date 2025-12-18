@@ -8,7 +8,7 @@ import json
 JIRA_DOMAIN = "https://godeyes.atlassian.net"
 EMAIL = "chuongthanh0410@gmail.com"
 API_TOKEN = ""
-START_DATE = "2025-11-15"  # YYYY-MM-DD
+START_DATE = "2025-12-15"  # YYYY-MM-DD
 # ==========================
 
 auth = HTTPBasicAuth(EMAIL, API_TOKEN)
@@ -51,20 +51,28 @@ while True:
             author = wl["author"]["emailAddress"]
             started = parser.parse(wl["started"]).replace(tzinfo=None)
 
-            # print(json.dumps(wl, indent=2))  # Debug: print worklog details
+            # print(json.dumps(wl.get("comment"), indent=2))  # Debug: print worklog details
 
             if author == EMAIL and started >= start_date:
                 seconds = wl["timeSpentSeconds"]
                 total_seconds += seconds
 
+                # Extract all content from worklog comment
+                comment_content = ""
+                comment = wl.get("comment", {})
+                if comment and "content" in comment:
+                    for content_block in comment["content"]:
+                        if "content" in content_block:
+                            for inner_content in content_block["content"]:
+                                if "text" in inner_content:
+                                    comment_content += inner_content["text"]
+
                 rows.append({
                     "date": started.strftime("%Y-%m-%d %H:%M:%S"),
                     "issue": key,
-                    "summary": summary,
+                    "summary": summary, 
                     "time_hours": round(seconds / 3600, 2),
-                    "comment": wl.get("comment", {}).get("content", [{}])[0]
-                                .get("content", [{}])[0]
-                                .get("text", "")
+                    "comment": comment_content
                 })
 
     if not result.get("maxResults"):
