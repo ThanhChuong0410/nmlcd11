@@ -12,6 +12,7 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./nginx/certs:/etc/nginx/certs
       - ./nginx/streams.d:/etc/nginx/streams.d
+      - ./nginx/www:/var/www/certbot
     depends_on:
       - godeyes-registry
     networks:

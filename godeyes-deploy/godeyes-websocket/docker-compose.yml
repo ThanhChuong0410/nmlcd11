@@ -1,6 +1,6 @@
 services:
   godeyes-websocket-service:
-    image: registry.godeyes.vn/godeyes-websocket-service:0.1.0-5992abd
+    image: registry.godeyes.vn/godeyes-websocket-service:0.1.0-52beb55
     container_name: godeyes-websocket-service
     ports:
       - "127.0.0.1:8090:8090"  # Chỉ bind localhost, không public

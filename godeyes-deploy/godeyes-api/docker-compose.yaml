@@ -1,11 +1,13 @@
 services:
   godeyes-api:
-    image: registry.godeyes.vn/godeyes-api:0.1.0-54cd019
+    image: registry.godeyes.vn/godeyes-api:0.1.0-52beb55
     container_name: godeyes-api
     ports:
       - "127.0.0.1:8686:8686"
     volumes:
       - ./configs:/app/configs
+      - ./file_storage:/app/file_storage
+      - ./playback_storage:/app/playback_storage
     restart: unless-stopped
     environment:
       - TZ=Asia/Ho_Chi_Minh

@@ -1,6 +1,6 @@
 services:
   godeyes-ui:
-    image: registry.godeyes.vn/godeyes-ui:0.1.0-de24396
+    image: registry.godeyes.vn/godeyes-ui:0.1.0-a32fac5
     container_name: godeyes-ui
     ports:
       - "80"

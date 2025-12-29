@@ -81,7 +81,7 @@ websocket:
   # socket_url: "wss://only-hero-opposition-truck.trycloudflare.com/stream"
 
 auth_config:
-  jwt_secret_key: "your_jwt_secret_key"
+  jwt_secret_key: "fC[-sOekYzQ;UTHT[Qm};%@$)Qa3[E"
   token_expire: 1200 # in seconds (2 minute)
   refresh_token_expire: 43200 # in seconds (12 hours)
   long_token_expire: 604800 # in seconds (7 days)
@@ -100,6 +100,8 @@ auth_config:
     - /api/v1/auth/login
     - /api/v1/auth/refresh
     - /edge
+
+    # api upload file, use basic auth instead
     - /api/v1/edges/upload-file
 
 application:
@@ -107,3 +109,4 @@ application:
   camera_timeout_mark_offline: 5m
   file_storage_path: "./file_storage"
   max_file_upload_size: 10485760 # 10 MB
+  enable_pprof_dump: false

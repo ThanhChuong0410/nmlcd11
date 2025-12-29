@@ -7,7 +7,7 @@ networks:
 
 services:
   event-service:
-    image: registry.godeyes.vn/godeyes-event:0.1.0-0f8f1e4
+    image: registry.godeyes.vn/godeyes-event:0.1.0-1ad487a
     container_name: godeyes-event-service
     restart: unless-stopped
     networks:

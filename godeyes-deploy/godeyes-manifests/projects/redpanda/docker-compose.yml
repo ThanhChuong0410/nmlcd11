@@ -13,7 +13,8 @@ services:
       - redpanda
       - start
       - --kafka-addr plaintext://0.0.0.0:9092,external://0.0.0.0:19092,sasl_plaintext://0.0.0.0:9093
-      - --advertise-kafka-addr plaintext://redpanda-broker:9092,external://redpanda-broker:19092,sasl_plaintext://redpanda-broker:9093
+      - --advertise-kafka-addr plaintext://redpanda-broker:9092,external://redpanda-broker:19092,sasl_plaintext://queue.godeyes.vn:8443
+#      - --advertise-kafka-addr plaintext://redpanda-broker:9092,external://redpanda-broker:19092,sasl_plaintext://redpanda-broker:9093
       - --pandaproxy-addr plaintext://0.0.0.0:8082,external://0.0.0.0:18082
       - --advertise-pandaproxy-addr plaintext://redpanda-broker:8082,external://localhost:18082
       - --schema-registry-addr plaintext://0.0.0.0:8081,external://0.0.0.0:18081
@@ -26,7 +27,7 @@ services:
       - --set redpanda.enable_sasl=true
       - --set redpanda.superusers=["admin"]
     image: docker.redpanda.com/redpandadata/redpanda:v25.2.10
-    container_name: redpanda-broker
+    container_name: godeyes-redpanda-broker
     restart: unless-stopped
     volumes:
       - redpanda-broker:/var/lib/redpanda/data
